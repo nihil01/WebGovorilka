@@ -1,0 +1,116 @@
+<header>
+    <div class="header-container">
+        <div class="naming-container">
+            <p><span>Web</span>Govorilka</p>
+        </div>
+        <div class="greeting-container">
+            <p><%=time%>,<i> <%=nick%></i></p>
+        </div>
+        <div class="details">
+                <svg width="40px" height="55px" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 6H21" stroke="black" stroke-width="2" stroke-linecap="round"></path>
+                    <path d="M3 12H21" stroke="black" stroke-width="2" stroke-linecap="round"></path>
+                    <path d="M3 18H21" stroke="black" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+            <ul>
+                <li>
+                    <a href="details/friends">Friends</a>
+                </li>
+                <li>
+                    <a href="details/invites">Invites</a>
+                </li>
+                <li>
+                        <a href="details/profile">Profile</a>
+                </li>
+
+            </ul>
+
+                <div class="dropdown">
+                    <div class="dropdown-content">
+                        <a href="details/friends">Friends</a>
+
+                        <a href="details/invites">Invites</a>
+
+                        <a href="details/profile">Profile</a>
+                    </div>
+                </div>
+        </div>
+    </div>
+</header>
+<style>
+
+    .header-container{
+        font-family: "Arial";
+    }
+
+    .naming-container{
+        font-size: 1.3rem;
+        font-family: "Arial";
+    }
+
+    .naming-container span{
+        font-size: 1.3rem;
+        font-style: oblique;
+    }
+
+    .header-container{
+        display: flex;
+        justify-content: space-around;
+        gap: 24rem;
+        border-bottom: 1px solid black ;
+        align-items: center;
+    }
+
+    .greeting-container{
+        font-size: 1.4rem;
+    }
+    .details svg{
+        display: none;
+    }
+    .details:hover{
+        cursor: pointer;
+    }
+
+    .details ul{
+        display: flex;
+        list-style-type: none;
+        gap: 30px;
+    }
+
+    .dropdown{
+        position: relative;
+        display: inline-block;
+    }
+
+    .dropdown-content{
+        display: none;
+        position: absolute;
+        z-index: 1;
+        border: 1px solid red;
+        padding: 10px;
+        left: -20px;
+    }
+
+
+
+    @media only screen and (max-width: 1190px){
+        .header-container{
+            gap: 10rem;
+        }
+    }
+
+    @media only screen and (max-width: 782px){
+        .details ul {
+            display: none;
+        }
+
+        .details svg{
+            display: block;
+        }
+
+        .header-container{
+            gap: 4rem;
+        }
+    }
+
+</style>
