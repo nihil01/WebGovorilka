@@ -25,4 +25,23 @@ const createToken = (...data) => {
     })
 }
 
-module.exports = { createToken, checkTokenValidity  }
+const showTime = () => {
+    const date = new Date().getHours();
+    let time;
+
+    if (date >= 4 && date < 12){
+        time = "☀️ Good Morning";
+    }else if (date >= 12 && date < 15){
+        time = "⛅️Good Day";
+    }else if (date >= 15 && date < 18){
+        time = "⛅Good Afternoon";
+    }else if (date >= 18 && date < 22){
+        time = "⛅️️️️Good Evening ";
+    }else{
+        time = "🌙Good Night";
+    }
+
+    return { time };
+}
+
+module.exports = { createToken, checkTokenValidity, showTime }

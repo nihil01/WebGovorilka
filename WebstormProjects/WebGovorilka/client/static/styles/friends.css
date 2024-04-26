@@ -1,0 +1,55 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+.main-container{
+    border: 1px solid maroon;
+    height: 90vh;
+    width: 60%;
+    margin: auto;
+}
+
+.nav{
+    height: 5.5vh;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+
+}
+
+.nav p:nth-child(2n)::before,
+.nav p:nth-child(2n)::after{
+    content: "";
+    display: inline-block;
+    width: 0;
+    height: 3.3rem;
+    border: 1px solid black;
+    margin: 7.5rem;
+    vertical-align: middle;
+}
+
+.nav-main {
+    border: 1px solid black;
+}
+
+.nav p{
+    font-size: 1.3rem;
+    transition: 0.5s;
+    font-family: Ebrima;
+}
+
+.nav p:hover{
+    cursor: pointer;
+    font-size: 1.32rem;
+    font-style: italic;
+}
+
+.nav p:visited{
+    color: red;
+}
+
+/*.window-main{*/
+/*    border: 1px solid violet;*/
+/*    height: 90vh;*/
+/*}*/

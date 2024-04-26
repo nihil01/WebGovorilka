@@ -23,6 +23,7 @@ event.on("save_chat", (room, message, socket) => {
 
 app.set("views", path.join(__dirname, `./client/static/views`))
 app.set("view engine", "ejs")
+
 app.use('/api/v1', routerPost);
 app.use('/', routerGet);
 app.use(express.static(path.join(__dirname, 'client', 'static')));

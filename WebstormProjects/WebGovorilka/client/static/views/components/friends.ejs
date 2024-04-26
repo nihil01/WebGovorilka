@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>WebGovorilka | Friends page</title>
+    <link rel="stylesheet" href="../../styles/friends.css">
+</head>
+<body>
+    <%- include("../parts/header.ejs", {nick:nick, email:email}) -%>
+<main>
+    <div class="main-container">
+        <div class="nav-main">
+            <div class="nav">
+                <p id="contacts-see">Contacts</p>
+                <p id="contacts-add">Add Contact</p>
+                <p id="friends-request">Friend Requests</p>
+            </div>
+        </div>
+        <div class="window-main">
+<!--            <div id="loader">-->
+<!--                <img src="https://localhost:8000/images/loader.gif" alt="loader-preview">-->
+<!--            </div>-->
+        </div>
+    </div>
+</main>
+    <%- include("../parts/footer.ejs") -%>
+<script src="../../scripts/friends.js"></script>
+</body>
+</html>

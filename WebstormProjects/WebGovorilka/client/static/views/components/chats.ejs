@@ -6,7 +6,6 @@
     <link rel="stylesheet" href="../../styles/chats.css">
 </head>
 <body>
-    <% if (includeHeader && includeFooter){%>
         <%- include("../parts/header.ejs", {nick: nick, email: email, time: time}) -%>
             <main>
                 <button id="btn-show" style="display: none">></button>
@@ -19,7 +18,7 @@
                 </div>
             </main>
         <%- include("../parts/footer.ejs") -%>
-    <%}%>
+
 <script src="../../scripts/chats.js"></script>
 </body>
 </html>
