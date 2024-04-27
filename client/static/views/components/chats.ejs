@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebGovorilka | Chat page</title>
+    <link rel="stylesheet" href="../../styles/chats.css">
+</head>
+<body>
+        <%- include("../parts/header.ejs", {nick: nick, email: email, time: time}) -%>
+            <main>
+                <button id="btn-show" style="display: none">></button>
+                    <div class="chat-list-container">
+                        <h2>List of chats</h2>
+                    </div>
+                <button id="btn-hide"> < </button>
+                <div class="chat-container">
+
+                </div>
+            </main>
+        <%- include("../parts/footer.ejs") -%>
+
+<script src="../../scripts/chats.js"></script>
+</body>
+</html>

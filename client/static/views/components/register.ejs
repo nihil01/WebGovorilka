@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGovorilka | Auth page</title>
+    <link rel="stylesheet" href="../styles/register.css">
+</head>
+<body>
+    <main>
+        <video id="prev-video" autoplay muted loop></video>
+        <div class="greet-container">
+            <h1>Добро пожаловать!</h1>
+            <h2>Для продолжения, вам необходимо зарегистрироваться</h2>
+        </div>
+        <div class="form-container">
+            <form>
+                <label for="email-form">E-mail</label>
+                    <input type="text" id="email-form" required autofocus/>
+
+                <label for="nick-form">Nickname</label>
+                    <input type="text" id="nick-form" required/>
+
+                <label for="pass-form">Password</label>
+                     <input type="password" id="pass-form" required/>
+
+                <label for="pass-conf">Password Confirmation</label>
+                    <input type="password" id="pass-conf" required/>
+
+
+                <input type="submit" id="submit-form" value="Регистрация">
+
+                <a style="color: white" href="/auth?state=login">Логин</a>
+            </form>
+        </div>
+    </main>
+    <footer>
+        <b>WebGovorilka | © All rights reserved 2024</b>
+    </footer>
+<script src="../scripts/register.js"></script>
+</body>
+</html>
