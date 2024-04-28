@@ -38,7 +38,14 @@ const sendToServer = (data) => {
         },
         body: JSON.stringify(data),
     }).then(data =>{
-        console.log(data)
+        if (data.ok){
+            return data.json()
+        }
+    })
+    .then(response => {
+        if (response.success){
+            window.location.href = "/";
+        }
     })
 }
 

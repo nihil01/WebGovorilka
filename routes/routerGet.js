@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require('express');
 const routerGet = express.Router();
-const { checkTokenValidity, showTime } = require('./middleware.js');
+const { checkTokenValidity, showTime, normalize, reverse } = require('./middleware.js');
 const {join} = require("path");
 const cookieParser = require("cookie-parser");
 const { time } = showTime();
@@ -32,6 +32,8 @@ const handleToken = async (req, res, next) => {
     }
 }
 
+//VIEW SERVING ROUTES
+
 routerGet.get('/',  handleToken, (req, res) => {
     const { nick, mail } = req.session_token;
 
@@ -40,6 +42,7 @@ routerGet.get('/',  handleToken, (req, res) => {
         email: mail,
         time: time,
     });
+
 })
 
 routerGet.get('/auth', (req, res) => {
@@ -68,8 +71,11 @@ routerGet.get("/details/:detail", handleToken, (req,res) => {
     }
 })
 
+
+//BACKEND LOGIC ROUTES
+//fetch user profiles according to recipient's input value
 let requestTime = null;
-routerGet.get(`/fetch/userList/:contacts`, async (req,res) => {
+routerGet.get(`/fetch/userList/:contacts`,handleToken, async (req,res) => {
     const { contacts } = req.params;
 
     if (!(typeof contacts === "string")){
@@ -84,10 +90,6 @@ routerGet.get(`/fetch/userList/:contacts`, async (req,res) => {
 
     requestTime = newDate;
 
-    function reverse(id){
-        return btoa(id.toString().split("").reverse().join(""));
-    }
-
     const result = await db.getUserList(contacts.toLowerCase());
     let data = [];
     result.map(el => {
@@ -96,26 +98,108 @@ routerGet.get(`/fetch/userList/:contacts`, async (req,res) => {
     return res.status(200).json(data);
 })
 
+//split fetching into sending friend request AND submitting friend request by query parameters
 routerGet.get("/fetch/user", handleToken, async (req,res)=> {
-    function normalize(id){
-        return atob(id).toString().split("").reverse().join("");
-    }
-    const { addFriend } = req.query;
-    const friendID = normalize(addFriend);
+    let { addFriend,  userID, requestType } = req.query;
     const { id } = req.session_token;
+    //requests
 
-    const isFriendExist = await db.checkFriendQuery(id, friendID);
-    console.log(id, friendID)
-    console.log(isFriendExist)
+    if (addFriend && !userID && !requestType){
+        const friendID = normalize(addFriend);
 
-    if(isFriendExist){
-        return res.status(200).json({warn: `You have already sent friend request to the user! Wait for approval` })
-    }else {
-        //adding to friendship query
-        await db.addFriendQuery(id, friendID);
-        return res.status(200).json({success: `Friend request was successfully send!`})
+        const isBlocked = await db.checkBlockedUser(id, friendID);
+
+        if (isBlocked){
+            return res.status(200).json({error: `You can't send request to this user!` })
+        }
+
+        const areFriends = await db.checkFriendship(id, friendID);
+
+        if (areFriends){
+            return res.status(200).json({warn: `You are already friends!` })
+        }
+
+        const isFriendExist = await db.checkFriendQuery(id, friendID);
+
+        if(isFriendExist){
+            return res.status(200).json({warn: `You have already sent friend request to the user! Wait for approval` })
+        }else {
+            //adding to friendship query
+            await db.addFriendQuery(id, friendID);
+            return res.status(200).json({success: `Friend request was successfully send!`})
+        }
+    }else if (!addFriend && userID && requestType){
+        userID = normalize(userID)
+        console.log(id, userID)
+        if (requestType === "block"){
+            try{
+                const exists =await db.checkFriendQuery(id, userID);
+                if (!exists){
+                    return res.status(401).json({error: "Invalid bunch"})
+                }
+
+                await db.blockUser(id, userID)
+                res.status(200).json({success: "You blocked the user!"})
+
+            }catch (e) {
+                res.status(500).json({error: "Unexpected behavior"})
+            }
+        }else if (requestType === "submit"){
+           try{
+               const exists = await db.checkFriendQuery(id, userID);
+               console.log(exists)
+               if (!exists){
+                   return res.status(401).json({error: "Invalid bunch"})
+               }
+               await db.removeFriendQuery(id, userID);
+               await db.addFriend(id, userID)
+
+               res.status(200).json({success: "You are now friends!"})
+
+           }catch (e) {
+               console.log(e)
+               res.status(500).json({error: "Unexpected behavior"})
+           }
+        }else if(requestType === "reject"){
+            try{
+                const exists = await db.checkFriendQuery(id, userID);
+                if (!exists){
+                    return res.status(401).json({error: "Invalid bunch"})
+                }
+                await db.removeFriendQuery(id, userID);
+                res.status(200).json({success: "You rejected friend request!"})
+
+            }catch (e) {
+                res.status(500).json({error: "Unexpected behavior"})
+            }
+        }
+        else{
+            res.status(400).json({error: "Invalid request type"});
+        }
     }
 })
 
+//split fetching into sending showing friends AND showing friendship requests by query parameters (ONLY VISUAL)
+routerGet.get("/fetch", handleToken, async (req,res) => {
+    const { userState } = req.query;
+    const { id } = req.session_token;
+
+    if (userState === "showFriends"){
+        const friends = await db.selectAllFriends(id);
+        res.status(200).json(friends);
+    }else if (userState === "showRequests"){
+        let requests = await db.getFriendRequests(id);
+        if (requests.length){
+            requests = requests.senderInfo.map(request => {
+                return {
+                    id: btoa((request.id.toString()).split("").reverse().join("")), nickname: request.nickname
+                }})
+            res.status(200).json(requests);
+        }else{
+            res.status(200).json({error: "No friend requests"})
+        }
+
+    }
+})
 
 module.exports = routerGet;

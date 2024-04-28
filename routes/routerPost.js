@@ -54,16 +54,16 @@ routerPost.post('/auth/state/:action', async (req,res) => {
         if (user.length === 0){
             return res.status(200).send("Invalid email or password");
         }
-        try{
+        try {
             const isMatch = await bcrypt.compare(password, user[0].password);
-            if(isMatch){
+            if (isMatch) {
                 let token = await createToken({id: user[0].id, nick: user[0].nickname, mail: user[0].email}, process.env.JWT_SECRET);
-                console.log(token)
                 res.cookie("session_token", token, {maxAge: 36000000, httpOnly:true});
+                res.json({success: true});
+            } else {
+                res.status(401).send("Invalid email or password"); // Ошибка в случае неверного email или пароля
             }
-            res.status(401).send("Invalid email or password");
-
-        }catch (e) {
+        } catch (e) {
             return res.status(500).send("Error logging user");
         }
     }

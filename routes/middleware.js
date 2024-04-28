@@ -44,4 +44,12 @@ const showTime = () => {
     return { time };
 }
 
-module.exports = { createToken, checkTokenValidity, showTime }
+function normalize(id){
+    return atob(id).toString().split("").reverse().join("");
+}
+
+function reverse(id){
+    return btoa(id.toString().split("").reverse().join(""));
+}
+
+module.exports = { createToken, checkTokenValidity, showTime, normalize, reverse }

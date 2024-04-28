@@ -1,7 +1,7 @@
 <header>
     <div class="header-container">
         <div class="naming-container">
-            <p><span>Web</span>Govorilka</p>
+            <a href="/"><span>Web</span>Govorilka</a>
         </div>
         <div class="greeting-container">
             <p><%=time%>,<i> <%=nick%></i></p>
@@ -51,6 +51,12 @@
     .naming-container span{
         font-size: 1.3rem;
         font-style: oblique;
+    }
+
+    .naming-container a{
+        text-underline: none;
+        text-decoration: none;
+        color: black;
     }
 
     .header-container{

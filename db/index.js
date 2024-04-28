@@ -23,15 +23,23 @@ class dbUtils {
     }
 
 
+    //for friend listing
+    async getUserById(userID){
+        const data = await pool.query("SELECT id, nickname FROM users WHERE id = $1",
+            [userID]);
+        return data.rows;
+    }
+
+
     //friend add / await friend request / block user
 
     async addFriend(userId, friendId){
-        return await pool.query("INSERT INTO friendships (id, friend_id) VALUES ($1, $2)",
+        return await pool.query("INSERT INTO friendships (user_id, friend_id) VALUES ($1, $2)",
             [userId, friendId]);
     }
 
     async removeFriend(userId, friendId){
-        return await pool.query("DELETE FROM friendships WHERE id = $1 AND friend_id = $2",
+        return await pool.query("DELETE FROM friendships WHERE user_id = $1 AND friend_id = $2",
             [userId, friendId]);
     }
 
@@ -45,21 +53,32 @@ class dbUtils {
             [userId, friendId]);
     }
 
-    async checkFriendQuery(userId, friendId){
-        const data = await pool.query("SELECT EXISTS(SELECT * FROM friendships_requests WHERE user_id = $1 AND friend_id = $2);",
+    async checkBlockedUser(userId, friendId){
+        const data = await pool.query("SELECT EXISTS(SELECT * FROM blocked_users WHERE user_id = $1 AND blocked_user_id = $2)",
+            [friendId, userId]);
+        return data.rows[0].exists;
+    }
+
+    async checkFriendship(userId, friendId){
+        const data = await pool.query("SELECT EXISTS(SELECT * FROM friendships WHERE user_id = $1 AND friend_id = $2);",
             [userId, friendId]);
         return data.rows[0].exists;
+    }
 
+    async checkFriendQuery(userId, friendId){
+        const data = await pool.query("SELECT EXISTS(SELECT * FROM friendships_requests WHERE sender = $1 AND recipient = $2);",
+            [friendId, userId]);
+        return data.rows[0].exists;
     }
 
     async addFriendQuery(userId, friendId){
-        return await pool.query("INSERT INTO friendships_requests(user_id, friend_id) VALUES ($1, $2)",
+        return await pool.query("INSERT INTO friendships_requests(sender, recipient) VALUES ($1, $2)",
             [userId, friendId]);
     }
 
     async removeFriendQuery(userId, friendId){
-        return await pool.query("DELETE FROM FROM friendships_requests WHERE user_id = $1 AND friend_id = $2",
-            [userId, friendId]);
+        return await pool.query("DELETE FROM friendships_requests WHERE sender = $1 AND recipient = $2",
+            [friendId, userId]);
     }
 
     //selected user by name (fetch query)
@@ -68,6 +87,31 @@ class dbUtils {
             [`%${nickname}%`]);
         return data.rows;
     }
+
+    //select all user's friends
+
+    async selectAllFriends(userID){
+        const data = await pool.query("SELECT * FROM friendships WHERE user_id = $1", [userID]);
+        const friends = {};
+        await Promise.all(data.rows.map(async el => {
+            friends.friendsInfo = await this.getUserById(el.friend_id);
+        }));
+
+        return friends;
+    }
+
+    //select all friend requests to user
+
+    async getFriendRequests(userID){
+        const data1 = await pool.query("SELECT * FROM friendships_requests WHERE recipient = $1 GROUP BY sender, recipient ORDER BY recipient", [userID]);
+        const sendersObj = {};
+       await Promise.all(data1.rows.map(async el => {
+           sendersObj.senderInfo = await this.getUserById(el.sender);
+       }))
+
+        return sendersObj;
+    }
+
 }
 
 module.exports = new dbUtils();
