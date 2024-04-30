@@ -69,4 +69,13 @@ routerPost.post('/auth/state/:action', async (req,res) => {
     }
 })
 
+//requests from /more/profile route
+routerPost.post("/request/:type", async (req,res)=>{
+    const { type } = req.params;
+    if (type === "change-avatar"){
+        const file = req.files;
+        console.log(file)
+    }
+})
+
 module.exports = routerPost;

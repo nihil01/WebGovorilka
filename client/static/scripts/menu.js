@@ -248,7 +248,10 @@ function popup(data){
     popUpFrame.appendChild(popUpDiv);
 
     document.body.insertBefore(popUpFrame, document.body.firstChild);
-    setTimeout(()=>{document.body.removeChild(popUpFrame)},2000)
+
+    setTimeout(()=>{
+        document.body.removeChild(popUpFrame)
+    },2000);
 }
 
 function resetColors(){

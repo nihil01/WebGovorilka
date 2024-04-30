@@ -1,10 +1,12 @@
 require("dotenv").config();
 const express = require('express');
 const routerGet = express.Router();
+
 const { checkTokenValidity, showTime, normalize, reverse } = require('./middleware.js');
 const {join} = require("path");
-const cookieParser = require("cookie-parser");
 const { time } = showTime();
+
+const cookieParser = require("cookie-parser");
 const db = require("../db/index");
 const fs = require('fs');
 
@@ -215,5 +217,10 @@ routerGet.get("/fetch/avatar/:userID", handleToken, (req, res) => {
         res.status(403).json({ error: 'Access denied' });
     }
 });
+
+routerGet.get("/fetch/request/logout", (req,res) => {
+    res.clearCookie("session_token");
+    res.json({ success: true });
+})
 
 module.exports = routerGet;
