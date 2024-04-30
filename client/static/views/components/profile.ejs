@@ -1,13 +1,40 @@
 <!doctype html>
 <html lang="en">
-<head>
+<link>
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>WebGovorilka | Profile page</title>
+    <link rel="stylesheet" href="../../styles/profile.css">
 </head>
 <body>
-<h1>profile</h1>
+<%-include("../parts/header.ejs", {nick: nick, email: email, time: time})-%>
+<main>
+    <div class="main-frame-container">
+        <div class="profile-container">
+            <figure>
+                <img src="/fetch/avatar/<%=id%>" alt="user image" id="profile-img"/>
+                <figcaption>XLast online at 30.04.24 (16:34)</figcaption>
+            </figure>
+        </div>
+        <div class="bio-container">
+            <h1 id="name">NAME</h1>
+            <div id="bio">
+                asd gas;d jhgaos;dfh[sdoihf[aoihf[asoidhf[aoshidf[oasd[fo asdnf lkasn d[fhna noKAH
+                so[diho[ ado[sbhldkf 'aspodjg]paohsdgo[iahs] guaopisgh \1!!!!
+            </div>
+            <p id="registered">30.04.2024 (16:34)</p>
+        </div>
+    </div>
+    <div class="profile-actions">
+        <div id="passChange">pass</div>
+        <div id="bioChange">bio</div>
+        <div id="avatarChange">avatar</div>
+        <div id="logout">logout</div>
+    </div>
+</main>
+<%-include("../parts/footer.ejs")-%>
+<script src="../../scripts/profile.js"></script>
 </body>
 </html>

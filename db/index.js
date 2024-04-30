@@ -54,7 +54,7 @@ class dbUtils {
     }
 
     async checkBlockedUser(userId, friendId){
-        const data = await pool.query("SELECT EXISTS(SELECT * FROM blocked_users WHERE user_id = $1 AND blocked_user_id = $2)",
+        const data = await pool.query("SELECT EXISTS(SELECT * FROM blocked_user WHERE user_id = $1 AND blocked_user_id = $2)",
             [friendId, userId]);
         return data.rows[0].exists;
     }
@@ -67,7 +67,7 @@ class dbUtils {
 
     async checkFriendQuery(userId, friendId){
         const data = await pool.query("SELECT EXISTS(SELECT * FROM friendships_requests WHERE sender = $1 AND recipient = $2);",
-            [friendId, userId]);
+            [userId, friendId]);
         return data.rows[0].exists;
     }
 

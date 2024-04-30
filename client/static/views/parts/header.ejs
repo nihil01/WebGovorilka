@@ -1,7 +1,7 @@
 <header>
     <div class="header-container">
         <div class="naming-container">
-            <a href="/"><span>Web</span>Govorilka</a>
+            <a href="/" title="THE BEST GOVORILKA !!!"><span>Web</span>Govorilka</a>
         </div>
         <div class="greeting-container">
             <p><%=time%>,<i> <%=nick%></i></p>
@@ -15,23 +15,18 @@
 
             <ul>
                 <li>
-                    <a href="details/friends">Friends</a>
+                    <a href="/more/menu">Menu</a>
                 </li>
                 <li>
-                    <a href="details/invites">Invites</a>
-                </li>
-                <li>
-                    <a href="details/profile">Profile</a>
+                    <a href="/more/profile">Profile</a>
                 </li>
             </ul>
 
                 <div class="dropdown">
                     <div class="dropdown-content">
-                        <a href="details/friends">Friends</a>
+                        <a href="/more/menu">Friends</a>
 
-                        <a href="details/invites">Invites</a>
-
-                        <a href="details/profile">Profile</a>
+                        <a href="/more/profile">Profile</a>
                     </div>
                 </div>
         </div>
@@ -83,8 +78,17 @@
         gap: 30px;
     }
 
-    .details ul li {
-        font-size: 1.2rem;
+    .details ul li{
+        font-size: 1.33rem;
+    }
+
+    .details ul li a{
+        text-decoration: none;
+        color: black;
+    }
+
+    .details ul li a:hover{
+        color: orange;
     }
 
     .dropdown{
@@ -124,3 +128,25 @@
     }
 
 </style>
+
+<script>
+
+    const details = document.querySelector(".details");
+    const url = new URL(location.href);
+
+    const arr = [el1 = details.children[1].children[1].children[0],
+        el2 = details.children[1].children[0].children[0],
+        el3 = details.children[2].children[0].children[0],
+        el4 = details.children[2].children[0].children[1]
+    ];
+    for (let el of arr){
+        if (el.pathname === url.pathname){
+            el.style.color = "red"
+        }
+    }
+
+
+
+
+
+</script>

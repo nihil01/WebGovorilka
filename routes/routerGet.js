@@ -6,7 +6,7 @@ const {join} = require("path");
 const cookieParser = require("cookie-parser");
 const { time } = showTime();
 const db = require("../db/index");
-
+const fs = require('fs');
 
 routerGet.use(express.json())
 routerGet.use(cookieParser())
@@ -55,19 +55,16 @@ routerGet.get('/auth', (req, res) => {
     }
 })
 
-routerGet.get("/details/:detail", handleToken, (req,res) => {
+routerGet.get("/more/:detail", handleToken, (req,res) => {
     const { detail } = req.params;
-    const { nick, mail } = req.session_token;
+    const { id, nick, mail } = req.session_token;
 
-    if (detail === "friends"){
-        res.render(join(__dirname, '../client/static/views/components/friends.ejs'), {nick: nick,
+    if (detail === "menu"){
+        res.render(join(__dirname, '../client/static/views/components/menu.ejs'), {nick: nick,
             email: mail, time:time});
     }else if(detail === "profile"){
         res.render(join(__dirname, '../client/static/views/components/profile.ejs'), {nick: nick,
-            email: mail, time:time});
-    }else if(detail === "invites"){
-        res.render(join(__dirname, '../client/static/views/components/invites.ejs'), {nick: nick,
-            email: mail, time:time});
+            email: mail, time: time, id: id});
     }
 })
 
@@ -130,7 +127,6 @@ routerGet.get("/fetch/user", handleToken, async (req,res)=> {
         }
     }else if (!addFriend && userID && requestType){
         userID = normalize(userID)
-        console.log(id, userID)
         if (requestType === "block"){
             try{
                 const exists =await db.checkFriendQuery(id, userID);
@@ -147,7 +143,6 @@ routerGet.get("/fetch/user", handleToken, async (req,res)=> {
         }else if (requestType === "submit"){
            try{
                const exists = await db.checkFriendQuery(id, userID);
-               console.log(exists)
                if (!exists){
                    return res.status(401).json({error: "Invalid bunch"})
                }
@@ -157,7 +152,6 @@ routerGet.get("/fetch/user", handleToken, async (req,res)=> {
                res.status(200).json({success: "You are now friends!"})
 
            }catch (e) {
-               console.log(e)
                res.status(500).json({error: "Unexpected behavior"})
            }
         }else if(requestType === "reject"){
@@ -186,7 +180,7 @@ routerGet.get("/fetch", handleToken, async (req,res) => {
 
     if (userState === "showFriends"){
         const friends = await db.selectAllFriends(id);
-        res.status(200).json(friends);
+        friends.length ? res.status(200).json(friends) : res.status(200).json({error: "No friends"})
     }else if (userState === "showRequests"){
         let requests = await db.getFriendRequests(id);
         if (requests.length){
@@ -201,5 +195,25 @@ routerGet.get("/fetch", handleToken, async (req,res) => {
 
     }
 })
+
+routerGet.get("/fetch/avatar/:userID", handleToken, (req, res) => {
+    console.log(typeof req.session_token.id, typeof req.params.userID)
+    if (req.session_token.id === parseInt(req.params.userID)) {
+        const filePath = join(process.cwd(), 'avatars', `avatar_${req.params.userID}.webp`);
+        fs.open(filePath, "r", (err, data) => {
+            if(err){
+                return console.error(err)
+            }
+            res.status(200).sendFile(filePath);
+            fs.close(data, (err) => {
+                if (err){
+                    return console.error(err)
+                }
+            })
+        });
+    } else {
+        res.status(403).json({ error: 'Access denied' });
+    }
+});
 
 module.exports = routerGet;

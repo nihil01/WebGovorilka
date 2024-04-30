@@ -21,8 +21,10 @@ event.on("save_chat", (room, message, socket) => {
     stream.write(`Date: ${date}, User: ${socket}\n Message: ${message}\n`)
 })
 
-app.set("views", path.join(__dirname, `./client/static/views`))
-app.set("view engine", "ejs")
+
+
+app.set("views", path.join(__dirname, `./client/static/views`));
+app.set("view engine", "ejs");
 
 app.use('/api/v1', routerPost);
 app.use('/', routerGet);
@@ -162,7 +164,6 @@ io.on('connection',(socket)=>{
                 console.log("Ice candidate recieved but could not find offerer")
             }
         }
-        // console.log(offers)
     })
 
 })

@@ -52,7 +52,7 @@ function getContacts(e){
         .then(data => {
             windowMain.innerHTML = "";
             const divOuter = document.createElement("div");
-            data.friendsInfo.forEach(friend => {
+            !data.error ? data.friendsInfo.forEach(friend => {
                 const divInner = document.createElement("div");
                 divInner.setAttribute("class","inner-div");
                 divInner.textContent = friend.nickname;
@@ -64,7 +64,7 @@ function getContacts(e){
 
                 divOuter.appendChild(img);
                 divOuter.appendChild(divInner);
-            })
+            }): divOuter.textContent = data.error
             windowMain.appendChild(divOuter);
         })
         .catch(e => {

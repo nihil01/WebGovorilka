@@ -1,0 +1,74 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.profile-container figure {
+    border: 1px solid red;
+    width: 13.3rem;
+    height: 15rem;
+}
+
+.profile-container figure #profile-img {
+    width: 100%; /* Ширина изображения будет равна ширине родительского блока */
+    height: auto; /* Автоматическое вычисление высоты для сохранения пропорций */
+    max-width: 100%; /* Изображение не будет превышать ширину родительского блока */
+    max-height: 100%; /* Изображение не будет превышать высоту родительского блока */
+    border: 1px solid green;
+}
+
+main{
+    margin: 3.3% auto;
+    max-width: 60%
+}
+
+.main-frame-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 39%;
+    flex: 1;
+}
+
+.bio-container{
+    display: flex;
+    flex-direction: column;
+    gap: 2rem ;
+}
+#bio{
+    width: 60%;
+    font-size: 1.2rem;
+}
+
+.profile-actions{
+    display: flex;
+    text-align: center;
+    margin-top: 4rem;
+    max-width: 100%;
+    justify-content: center;
+    gap: 17.5rem
+}
+
+.profile-actions div{
+    padding: 20px;
+    max-width: 10rem;
+    transition: 0.7s;
+}
+
+.profile-actions div:hover{
+    border: 1px solid red;
+    cursor: pointer;
+}
+
+.dropdown-list{
+    position: relative;
+    display: inline-block;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    transition: 0.5s;
+    top: 0;
+    left: -20px;
+    width: 10rem;
+    height: auto;
+}
