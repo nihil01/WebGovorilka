@@ -5,20 +5,27 @@ for (let child of profileActions.children){
 }
 
 function popup(data){
-    const div = document.createElement("div");
-    if (data.warn){
-        div.style.backgroundColor = "yellow"
-    }else if(data.error){
-        div.style.backgroundColor = "red"
-    }else if(data.success){
-        div.style.backgroundColor = "green"
+    const popUpFrame = document.createElement("div");
+    const popUpDiv = document.createElement("div");
+    const p = document.createElement("p");
+
+    if (data.warn || data.error) {
+        popUpDiv.style.backgroundColor = `rgba(${255}, ${0}, ${0}, ${0.85})`
+    }else{
+        popUpDiv.style.backgroundColor = `rgba(${58}, ${207}, ${65}, ${0.85})`
     }
-    div.setAttribute("class", "div-popup")
-    div.textContent = data.warn || data.error || data.success;
 
-    document.body.insertBefore(div, document.body.firstChild);
+    popUpDiv.setAttribute("class", "div-popup");
+    popUpFrame.setAttribute("class", "div-popup-frame");
+    p.textContent = data.warn || data.success || data.error;
+    popUpDiv.appendChild(p);
+    popUpFrame.appendChild(popUpDiv);
 
-    setTimeout(()=>{document.body.removeChild(document.body.firstChild)},3000);
+    document.body.insertBefore(popUpFrame, document.body.firstChild);
+
+    setTimeout(()=>{
+        document.body.removeChild(popUpFrame)
+    },2000);
 }
 
 function applyDropdownToChildren(child){
@@ -65,8 +72,12 @@ function applyDropdownToChildren(child){
                     if (resp.ok){
                         return resp.json();
                     }
-                }).then(data => {
-                    console.log(data);
+                }).then(async data => {
+                    await popup(data);
+                    if (data.success){
+                        location.reload()
+                    }
+
                 }).catch(err => {
                     console.error(err);
                 })
@@ -86,45 +97,48 @@ function applyDropdownToChildren(child){
                         "Content-Type": "application/json"
                     },
                     method: "POST",
-                    body: JSON.stringify(textarea.value)
+                    body: JSON.stringify({data: textarea.value})
                 }).then(resp =>{
                     if (resp.ok){
                         return resp.json();
                     }
                 }).then(data => {
-                    console.log(data);
+                    popup(data);
                 }).catch(err => {
                     console.error(err);
                 })
             }
             dropdown.append(textarea, input);
         }else if(type === "avatarChange"){
+            const form = document.createElement("form");
+            form.action = "/api/v1/request/change-avatar";
+            form.method = "post";
+            form.enctype = "multipart/form-data";
+
             const input = document.createElement("input");
             const button = document.createElement("input");
             input.type = "file";
             input.name = "avatar";
             button.type = "submit";
+            form.append(input, button);
+            dropdown.appendChild(form);
 
-            button.onclick =  () => {
-                const formData = new FormData();
-                formData.append("avatar", input.files[0])
-                fetch("/api/v1/request/change-avatar", {
-                    headers: {
-                        "Content-Type": "multipart/form-data"
-                    },
-                    method: "POST",
-                    body: formData
-                }).then(resp =>{
-                    if (resp.ok){
-                        return resp.json();
-                    }
-                }).then(data => {
-                    console.log(data);
-                }).catch(err => {
-                    console.error(err);
-                })
-            }
-            dropdown.append(input, button);
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                await fetch(
+                    form.action, {
+                        method: form.method,
+                        body: formData
+                    })
+                    .then(resp => resp.json())
+                    .then(data => {
+                        popup(data);
+                    })
+                    .catch(err => {
+                        console.log(err)
+                    })
+            })
         }else {
             const input = document.createElement("input");
             input.type = "submit"

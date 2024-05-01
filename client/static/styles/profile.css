@@ -73,7 +73,7 @@ main{
     height: auto;
 }
 
-.div-popup{
+.div-popup-frame{
     text-align: center;
     margin: 0 auto;
     width: 70%;
@@ -83,4 +83,9 @@ main{
     top: 0;
     left: 15%;
     border-radius: 0.2rem;
+}
+
+.div-popup{
+    font-size: 1.25rem;
+    padding: 0.9rem;
 }

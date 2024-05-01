@@ -57,7 +57,7 @@ routerGet.get('/auth', (req, res) => {
     }
 })
 
-routerGet.get("/more/:detail", handleToken, (req,res) => {
+routerGet.get("/more/:detail", handleToken, async (req,res) => {
     const { detail } = req.params;
     const { id, nick, mail } = req.session_token;
 
@@ -65,8 +65,10 @@ routerGet.get("/more/:detail", handleToken, (req,res) => {
         res.render(join(__dirname, '../client/static/views/components/menu.ejs'), {nick: nick,
             email: mail, time:time});
     }else if(detail === "profile"){
+        const userData = await db.getUserByIdBio(id);
+
         res.render(join(__dirname, '../client/static/views/components/profile.ejs'), {nick: nick,
-            email: mail, time: time, id: id});
+            email: mail, time: time, id: id, data: userData[0]});
     }
 })
 

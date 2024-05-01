@@ -20,19 +20,20 @@
             </figure>
         </div>
         <div class="bio-container">
-            <h1 id="name">NAME</h1>
+            <h1 id="name"><%=data.nickname%></h1>
             <div id="bio">
-                asd gas;d jhgaos;dfh[sdoihf[aoihf[asoidhf[aoshidf[oasd[fo asdnf lkasn d[fhna noKAH
-                so[diho[ ado[sbhldkf 'aspodjg]paohsdgo[iahs] guaopisgh \1!!!!
+                <%= data.bio ? data.bio : "No bio specified." %>
             </div>
-            <p id="registered">30.04.2024 (16:34)</p>
+            <p id="registered">Registered: <%= new Date(data.registered).toDateString() %></p>
         </div>
     </div>
     <div class="profile-actions">
         <div id="passChange"><p>Password (change)</p></div>
         <div id="bioChange"><p>Bio (change)</p></div>
-        <div id="avatarChange"><p>Avatar (change)</p></div>
-        <div id="logout"><p>Logout (change)</p></div>
+        <div id="avatarChange">
+            <p>Avatar (change)</p>
+        </div>
+        <div id="logout"><p>Logout</p></div>
     </div>
 </main>
 <%-include("../parts/footer.ejs")-%>

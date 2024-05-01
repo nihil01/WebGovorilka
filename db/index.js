@@ -30,6 +30,30 @@ class dbUtils {
         return data.rows;
     }
 
+    //for password changing route
+    async getUserByIdPswd(userID){
+        const data = await pool.query("SELECT id, password FROM users WHERE id = $1",
+            [userID]);
+        return data.rows;
+    }
+
+    async getUserByIdBio(userID){
+        const data = await pool.query("SELECT id, nickname, last_online, registered, bio FROM users WHERE id = $1",
+            [userID]);
+        return data.rows;
+    }
+
+    async updatePasswordById(userID, newPassword){
+        return await pool.query("UPDATE users SET password = $1 WHERE id = $2",
+            [newPassword, userID])
+    }
+
+    async updateBioById(userID, newBio){
+        return await pool.query("UPDATE users SET bio = $1 WHERE id = $2",
+            [newBio, userID])
+    }
+
+
 
     //friend add / await friend request / block user
 

@@ -1,4 +1,8 @@
 const jwt = require('jsonwebtoken');
+const multer = require("multer");
+const { join } = require("path");
+const fs = require("fs");
+
 require('dotenv').config({
     path: "../.env"
 });
@@ -52,4 +56,32 @@ function reverse(id){
     return btoa(id.toString().split("").reverse().join(""));
 }
 
-module.exports = { createToken, checkTokenValidity, showTime, normalize, reverse }
+//multer
+const path = join(process.cwd(), "avatars");
+const storageConfig = multer.diskStorage({
+    destination: (req, file, cb)=>{
+        cb(null, path)
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname)
+    }
+})
+
+const filterConfig = (req, file, cb) => {
+    if (file.mimetype === "image/png" || file.mimetype === "image/jpg" ||
+        file.mimetype === "image/jpeg" || file.mimetype === "image/webp"){
+            cb(null, true)
+    }else{
+        cb(null, false)
+    }
+}
+
+
+module.exports = {
+    //jwt
+    createToken, checkTokenValidity,
+    //utils
+    showTime, normalize, reverse,
+    //multer
+    storageConfig, filterConfig
+}

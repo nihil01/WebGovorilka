@@ -1,9 +1,12 @@
 const express = require('express');
 const routerPost = express.Router();
+const multer = require("multer");
+const fs = require("fs");
+const { join } = require("path");
 
 require('dotenv').config();
 
-const { createToken } = require('./middleware');
+const { createToken, filterConfig, storageConfig, checkTokenValidity} = require('./middleware');
 
 const db = require("../db/index");
 const bcrypt = require("bcrypt");
@@ -11,6 +14,27 @@ const cookieParser = require("cookie-parser");
 
 routerPost.use(express.json());
 routerPost.use(cookieParser());
+routerPost.use(multer({storage: storageConfig, fileFilter: filterConfig}).single("avatar"))
+
+const handleToken = async (req, res, next) => {
+    try{
+
+        const cookies = req.cookies['session_token'];
+        if (cookies) {
+            const valid = await checkTokenValidity(cookies, process.env.JWT_SECRET)
+            if (valid){
+                req.session_token = valid;
+                next()
+            }else{
+                res.status(401).send("Invalid token");
+            }
+        }else{
+            res.status(401).send("NO COOKIE")
+        }
+    }catch (e) {
+        console.error(e);
+    }
+}
 
 routerPost.post('/auth/state/:action', async (req,res) => {
     const { action } = req.params;
@@ -70,11 +94,47 @@ routerPost.post('/auth/state/:action', async (req,res) => {
 })
 
 //requests from /more/profile route
-routerPost.post("/request/:type", async (req,res)=>{
+routerPost.post("/request/:type", handleToken, async (req,res)=>{
     const { type } = req.params;
+    const { id } = req.session_token;
     if (type === "change-avatar"){
-        const file = req.files;
-        console.log(file)
+        const file = req.file;
+        if (!file || file.size > 1000){
+            fs.rmSync(file.path);
+            return res.json({error: "Ошибка при загрузке файла"})
+        }else {
+            fs.rename(file.path, `${join(process.cwd(), "avatars", `avatar_${id}.webp`)}`, (err, data)=>{
+                if (err){
+                    return res.json({error: "Ошибка при загрузке файла на сервер"})
+                }
+                return res.json({success: "Файл загружен"});
+            });
+        }
+    }else if (type === "change-password"){
+        const {pass1, pass2} = req.body;
+
+        const password = await db.getUserByIdPswd(id);
+        const isMatched = await bcrypt.compare(pass1, password[0].password);
+
+        if (!isMatched){
+            return res.json({error: "Invalid password !"})
+        }
+
+        const newPassword = await bcrypt.hash(pass2, 10);
+
+        await db.updatePasswordById(id, newPassword);
+
+        res.clearCookie("session_token")
+        return res.json({success: "Password has been updated! Logging out ..."})
+    }else if(type === "change-bio"){
+        const { data } = req.body;
+        if (data.length > 300){
+            return res.json({error: "Invalid length !"})
+        }
+
+        await db.updateBioById(id, data);
+
+        res.json({success: "Bio changed!"})
     }
 })
 
