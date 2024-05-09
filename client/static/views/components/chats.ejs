@@ -11,14 +11,21 @@
                 <button id="btn-show" style="display: none">></button>
                     <div class="chat-list-container">
                         <h2>List of chats</h2>
+                        <%friends.forEach(el => {%>
+                            <div class="friend-container">
+                                <input type="hidden" name="<%=el.id%>"/>
+                                <img src="/fetch/avatar/<%=el.id%>" alt="user-avatar">
+                                <p><%=el.nickname%></p>
+                            </div>
+                        <%})%>
                     </div>
                 <button id="btn-hide"> < </button>
                 <div class="chat-container">
-
                 </div>
             </main>
         <%- include("../parts/footer.ejs") -%>
 
+<script type="module" src="../../scripts/webRtc.js"></script>
 <script src="../../scripts/chats.js"></script>
 </body>
 </html>

@@ -36,15 +36,27 @@ const handleToken = async (req, res, next) => {
 
 //VIEW SERVING ROUTES
 
-routerGet.get('/',  handleToken, (req, res) => {
-    const { nick, mail } = req.session_token;
-
+routerGet.get('/',  handleToken, async (req, res) => {
+    const { nick, mail, id } = req.session_token;
+    let data = await db.selectAllChats(req.session_token.id)
+    console.log(data)
+    let friends = [];
+    if (data.length){
+        await Promise.all(data.map(async el => {
+            let val = Object.values(el);
+            let friendID = val[0] === id ? val[1] : val[0];
+            friends.push(
+                (await db.getUserById(friendID))[0]
+            )
+        }))
+    }
+    console.log(friends)
     res.render(join(__dirname, '../client/static/views/components/chats.ejs'), {
         nick: nick,
         email: mail,
         time: time,
+        friends: friends,
     });
-
 })
 
 routerGet.get('/auth', (req, res) => {
@@ -66,7 +78,7 @@ routerGet.get("/more/:detail", handleToken, async (req,res) => {
             email: mail, time:time});
     }else if(detail === "profile"){
         const userData = await db.getUserByIdBio(id);
-
+        console.log(req.session_token.id)
         res.render(join(__dirname, '../client/static/views/components/profile.ejs'), {nick: nick,
             email: mail, time: time, id: id, data: userData[0]});
     }
@@ -133,7 +145,7 @@ routerGet.get("/fetch/user", handleToken, async (req,res)=> {
         userID = normalize(userID)
         if (requestType === "block"){
             try{
-                const exists =await db.checkFriendQuery(id, userID);
+                const exists = await db.checkFriendQuery(id, userID);
                 if (!exists){
                     return res.status(401).json({error: "Invalid bunch"})
                 }
@@ -179,30 +191,52 @@ routerGet.get("/fetch/user", handleToken, async (req,res)=> {
 
 //split fetching into sending showing friends AND showing friendship requests by query parameters (ONLY VISUAL)
 routerGet.get("/fetch", handleToken, async (req,res) => {
-    const { userState } = req.query;
+    const { userState, userID } = req.query;
     const { id } = req.session_token;
+    console.log(userState, userID)
 
     if (userState === "showFriends"){
         const friends = await db.selectAllFriends(id);
-        friends.length ? res.status(200).json(friends) : res.status(200).json({error: "No friends"})
+        console.log(friends.friendsInfo)
+        friends.friendsInfo ? res.status(200).json(friends) : res.status(200).json({error: "No friends"})
     }else if (userState === "showRequests"){
         let requests = await db.getFriendRequests(id);
-        if (requests.length){
-            requests = requests.senderInfo.map(request => {
-                return {
-                    id: btoa((request.id.toString()).split("").reverse().join("")), nickname: request.nickname
-                }})
-            res.status(200).json(requests);
-        }else{
+
+        try{
+            if (requests.senderInfo.length){
+                requests = requests.senderInfo.map(request => {
+                    return {
+                        id: btoa((request.id.toString()).split("").reverse().join("")), nickname: request.nickname
+                    }})
+                res.status(200).json(requests);
+            }
+        }catch (e) {
             res.status(200).json({error: "No friend requests"})
         }
 
+
+    }else if(userState === "showRelations" && userID){
+
+        const subF = async () => {
+            return await db.checkRelations(req.session_token.id, userID)
+        }
+
+        const response = await subF();
+
+        if (!response[0]){
+            db.createRelation(req.session_token.id, userID)
+                .then(_ => {
+                    const path = join(process.cwd(), 'chats_data', `${req.session_token.id}_${userID}.txt`);
+                    fs.appendFileSync(path, '');
+            })
+        }
+        return res.status(200).json({ success: true });
     }
+
 })
 
 routerGet.get("/fetch/avatar/:userID", handleToken, (req, res) => {
-    console.log(typeof req.session_token.id, typeof req.params.userID)
-    if (req.session_token.id === parseInt(req.params.userID)) {
+  try{
         const filePath = join(process.cwd(), 'avatars', `avatar_${req.params.userID}.webp`);
         fs.open(filePath, "r", (err, data) => {
             if(err){
@@ -215,8 +249,8 @@ routerGet.get("/fetch/avatar/:userID", handleToken, (req, res) => {
                 }
             })
         });
-    } else {
-        res.status(403).json({ error: 'Access denied' });
+    } catch (e) {
+        res.status(403).json({ error: 'Access denied'});
     }
 });
 
@@ -224,5 +258,19 @@ routerGet.get("/fetch/request/logout", (req,res) => {
     res.clearCookie("session_token");
     res.json({ success: true });
 })
+
+routerGet.get("/passwordReset/:hash", async (req,res) => {
+    const { hash } = req.params;
+
+    let data = await db.restorePassByHashValue(hash);
+
+    if (data.length === 0){
+        return res.status(401).json({"error": "link has been expired or invalid"})
+    }
+
+    res.render(join(__dirname, '../client/static/views/components/passReset.ejs'))
+})
+
+
 
 module.exports = routerGet;

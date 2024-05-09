@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <form method="post">
+        <input type="password" name="psw1" id="psw1" placeholder="NEW PASSWORD">
+        <input type="password" name="psw2" id="psw2" placeholder="PASSWORD CONFIRMATION">
+        <input type="checkbox" onclick="fun()">
+        <button type="submit">Submit</button>
+    </form>
+</body>
+<script>
+    if (document.querySelector("input[name='psw1']").value !== document.querySelector("input[name='psw2']").value){alert("Passwords must be equal")}
+    let clicked = false;
+    function fun(){
+        if (!clicked){
+            document.querySelector('input[name=\'psw1\']').type = 'text';
+            document.querySelector('input[name=\'psw2\']').type = 'text';
+        }else{
+            document.querySelector('input[name=\'psw1\']').type = 'password';
+            document.querySelector('input[name=\'psw2\']').type = 'password';
+        }
+        clicked = !clicked;
+    }
+
+    document.querySelector('form').onsubmit = (e) => {
+        e.preventDefault();
+        fetch("/api/v1/passwordReset", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                psw1: document.querySelector("input[name='psw1']").value,
+                psw2: document.querySelector("input[name='psw2']").value,
+                hashVal: new URL(window.location.href).pathname.split('/')[2]
+            })
+        })
+            .then(d => d.json())
+            .then(data => {
+                if (data.success){
+                    location.href = '/'
+                }else{
+                    alert(data.error)
+                }
+            })
+            .catch(err => {
+                console.error(err)
+            })
+    }
+</script>
+</html>

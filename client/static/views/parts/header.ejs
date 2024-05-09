@@ -130,6 +130,7 @@
 </style>
 
 <script>
+    const svg = document.querySelector('.details svg');
 
     const details = document.querySelector(".details");
     const url = new URL(location.href);
@@ -146,7 +147,18 @@
     }
 
 
+    const dropdown = document.querySelector('.dropdown-content');
 
+    let flag = false;
+    svg.onclick = function () {
+        if (!flag){
+            dropdown.style.display = "block";
+            flag = true;
+        }else{
+            dropdown.style.display = "none";
+            flag = false;
+        }
+    }
 
 
 </script>

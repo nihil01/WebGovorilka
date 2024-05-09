@@ -54,6 +54,7 @@ const connectedSockets = [];
 
 io.on('connection',(socket)=>{
     //WEB CHAT LOGIC IMPLEMENTATION
+    console.log('connected!')
     socket.on("define_room", (roomNumber)=> {
 
         socket.join("room-" + roomNumber);

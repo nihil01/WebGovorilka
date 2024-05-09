@@ -1,3 +1,5 @@
+import { io } from "https://cdn.socket.io/4.7.5/socket.io.esm.min.js";
+
 const localVideoEl = document.querySelector('#local-video');
 const remoteVideoEl = document.querySelector('#remote-video');
 
@@ -9,9 +11,7 @@ let didIOffer = false;
 const userName = "Rob-"+Math.floor(Math.random() * 100000)
 const password = "x";
 
-//if trying it on a phone, use this instead...
-// const socket = io.connect('https://LOCAL-DEV-IP-HERE:8181/',{
-const socket = io.connect('https://192.168.0.106:8000/',{
+const socket = io.connect('https://localhost:8000/',{
     auth: {
         userName,password
     }

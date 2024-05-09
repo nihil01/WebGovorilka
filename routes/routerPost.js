@@ -7,18 +7,22 @@ const { join } = require("path");
 require('dotenv').config();
 
 const { createToken, filterConfig, storageConfig, checkTokenValidity} = require('./middleware');
+const encrypt = require("../cipher/encrypt");
+const decrypt = require("../cipher/decrypt");
+const getChat = require("../chats_utils/utils");
 
 const db = require("../db/index");
 const bcrypt = require("bcrypt");
 const cookieParser = require("cookie-parser");
 
+const processRequest = require("../microservices/emailReset");
+
 routerPost.use(express.json());
 routerPost.use(cookieParser());
-routerPost.use(multer({storage: storageConfig, fileFilter: filterConfig}).single("avatar"))
+routerPost.use(multer({storage: storageConfig, fileFilter: filterConfig}).single("avatar"));
 
 const handleToken = async (req, res, next) => {
     try{
-
         const cookies = req.cookies['session_token'];
         if (cookies) {
             const valid = await checkTokenValidity(cookies, process.env.JWT_SECRET)
@@ -65,6 +69,21 @@ routerPost.post('/auth/state/:action', async (req,res) => {
                     return;
                 }
                 db.addUser(email, data, nickName)
+                    .then(data => {
+                        const id = data[0]["id"];
+                        const pathFromCopy = join(process.cwd(), "CONSTANTS", "DEFAULT_USER_IMAGE.png");
+                        const pathToCopy = join(process.cwd(), "avatars", `avatar_${id}.webp`);
+
+                        fs.copyFile(pathFromCopy, pathToCopy, (err) => {
+                            if (err){
+                                return console.error(err);
+                            }
+                            console.log("copy successful");
+                        })
+                    })
+                    .catch(err => {
+                        console.error(err)
+                    })
                 return res.status(200).send("User has been registered");
              });
         }catch (e) {
@@ -134,8 +153,63 @@ routerPost.post("/request/:type", handleToken, async (req,res)=>{
 
         await db.updateBioById(id, data);
 
-        res.json({success: "Bio changed!"})
+        res.json({ success: "Bio changed!" })
     }
+})
+
+routerPost.post("/forgotPassword", async (req,res) => {
+    const { email } = req.body;
+
+    if (email === "" || !email || typeof email !== 'string'){
+       return res.status(401).json({error: "Invalid input"})
+    }
+
+    if ('/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/'.match(email)){
+        return res.status(401).send('Invalid email or password');
+    }
+
+    try{
+        const data = await db.getUser(email);
+        const userData = {
+            nickname: data[0].nickname,
+            email: data[0].email,
+            ip: req.ip,
+            cipher: encrypt(email)
+        };
+
+        processRequest(userData)
+    }catch (e) {
+        return res.status(401).json({ error: 'Bad request!' });
+    }
+})
+
+routerPost.post("/passwordReset", async (req,res) => {
+    const { psw1, psw2, hashVal } = req.body;
+
+    if (psw1 !== psw2){
+        return res.json({error: "passwords should be equal"});
+    }
+
+    const data = await db.restorePassByHashValue(hashVal)
+
+    if (data.length){
+        const email = decrypt({iv: data[0].iv, encryptedData: data[0].hash})
+        await db.updatePasswordByMail(email, await bcrypt.hash(psw2, 10))
+        await db.deactivateLink(hashVal)
+        return res.status(200).json({success: "password changed"})
+    }
+    return res.status(400).json({error: "No data obtained"})
+
+})
+
+routerPost.post("/loadChat", handleToken, async(req,res) => {
+    const id = req.session_token.id;
+    const { userID } = req.body;
+
+    const relation = await db.checkRelations(id, userID);
+
+    const chat = await getChat(relation[0])
+    res.status(200).json({ chat });
 })
 
 module.exports = routerPost;

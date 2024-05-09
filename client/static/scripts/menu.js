@@ -54,16 +54,30 @@ function getContacts(e){
             const divOuter = document.createElement("div");
             !data.error ? data.friendsInfo.forEach(friend => {
                 const divInner = document.createElement("div");
+                divOuter.style.display = "flex";
+                divInner.style.display = "flex";
                 divInner.setAttribute("class","inner-div");
-                divInner.textContent = friend.nickname;
 
                 const img = document.createElement("img");
                 img.src = "https://localhost:8000/images/envelope.png";
                 img.title = "Click to send friend request";
                 img.style.width = "20px";
 
-                divOuter.appendChild(img);
+
+                divInner.textContent = friend[0]["nickname"];
+                divInner.appendChild(img)
+
+
+                img.onclick = () => {
+                    fetch(`/fetch?userState=showRelations&userID=${friend[0]["id"]}`)
+                        .then(resp => resp.json())
+                        .then(data => {
+                            data.success ? location.href = '/' : alert('error');
+                        })
+                }
+
                 divOuter.appendChild(divInner);
+                divOuter.style.flexDirection = 'column';
             }): divOuter.textContent = data.error
             windowMain.appendChild(divOuter);
         })

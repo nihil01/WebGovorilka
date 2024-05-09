@@ -8,6 +8,8 @@ const form = document.querySelector("form");
 const pass = document.getElementById("pass-form");
 const email = document.getElementById("email-form");
 
+const forgotPassCreator = document.querySelector(".nav-bottom p");
+
 document.addEventListener("DOMContentLoaded", () => {
     let int = Math.floor(Math.random() * 4 + 1);
     const videoSrc = document.createElement("source");
@@ -26,7 +28,30 @@ document.addEventListener("DOMContentLoaded", () => {
         3200)
 });
 
+//password forgot
+const forgotPass = () => {
+    const input = prompt("Enter your email to request a password request");
+    if (input){
+        fetch("/api/v1/forgotPassword", {
+            headers: {
+                "Content-Type": "application/json"
+            },
+            method: "POST",
+            body: JSON.stringify({ email: input })
 
+        }).then(resp => resp.json())
+            .then(data => {
+                alert(data.success || data.error);
+            })
+            .catch(err => {
+                alert(err);
+            })
+    }else{
+        return alert("Invalid input data")
+    }
+}
+
+forgotPassCreator.addEventListener("click", forgotPass)
 
 //form submitting
 
