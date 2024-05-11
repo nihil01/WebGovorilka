@@ -52,6 +52,7 @@ routerGet.get('/',  handleToken, async (req, res) => {
     }
     console.log(friends)
     res.render(join(__dirname, '../client/static/views/components/chats.ejs'), {
+        id: id,
         nick: nick,
         email: mail,
         time: time,

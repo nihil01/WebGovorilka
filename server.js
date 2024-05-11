@@ -6,22 +6,18 @@ const path = require('path');
 
 // const cors = require("cors");
 
+require("dotenv").config({
+    path: "./.env"
+})
+
 const routerGet = require('./routes/routerGet.js');
 const routerPost = require('./routes/routerPost.js');
 
 const socket = require('socket.io');
-const date = require('./date')
 
-const events = require('events');
-const event = new events.EventEmitter();
+const { checkTokenValidity } = require("./routes/middleware")
 
-event.on("save_chat", (room, message, socket) => {
-    const directoryPath = path.join(__dirname, 'chats(data)', `Room-${room}.txt`);
-    const stream = fs.createWriteStream(directoryPath, {flags: 'a'})
-    stream.write(`Date: ${date}, User: ${socket}\n Message: ${message}\n`)
-})
-
-
+const getChat= require("./chats_utils/utils");
 
 app.set("views", path.join(__dirname, `./client/static/views`));
 app.set("view engine", "ejs");
@@ -48,44 +44,46 @@ const io = socket(expressServer, {
 });
 expressServer.listen(8000);
 
-let roomCount = 0;
 const offers = [];
 const connectedSockets = [];
 
 io.on('connection',(socket)=>{
     //WEB CHAT LOGIC IMPLEMENTATION
     console.log('connected!')
-    socket.on("define_room", (roomNumber)=> {
 
-        socket.join("room-" + roomNumber);
-        roomCount++;
-        socket.broadcast.in("room-" + roomNumber).emit("new_user", `Socket ${socket.id} connected!Members: ${roomCount}`)
+    socket.on("JOIN_REQUEST", (cb) => {
+        const cb2 = cb.split("_").sort((a,b) => a - b ).join("");
+        socket.join(cb2);
+        console.log("someone joined room", cb2)
 
-        socket.on("message_income", (data) => {
-            socket.broadcast.in("room-" + roomNumber).emit("message_outcome", data);
-            event.emit("save_chat", roomNumber, data, socket.id)
-        })
+        socket.broadcast.in(cb2).emit("new_user","Someone joined the room!");
 
-        socket.on("disconnect", (reason, description) => {
-            socket.leave("room-" + roomNumber);
-            roomCount--;
-            socket.broadcast.in("room-" + roomNumber).emit("disconnect_user", `Socket ${socket.id} disconneted : ${reason + description}!Members: ${roomCount}`)
+        socket.on("message", async (data)=>{
+            let cookies = socket.handshake.headers.cookie.split(";");
+            let cookie;
+            for (const el of cookies){
+                cookie = el.includes("session_token") ? el.slice("session_token=".length).trim(): ""
+            }
+            console.log(cookie)
+            const info = await checkTokenValidity(
+                cookie, process.env.JWT_SECRET);
+            getChat("WRITE", cb, {id: info.id, data});
+            console.log({id: info.id, data})
+            socket.broadcast.in(cb2).emit("new_message", data);
         })
     })
 
 
-    //WEB RTC LOGIC IMPLEMENTATION
-    const userName = socket.handshake.auth.userName;
-    const password = socket.handshake.auth.password;
 
-    if(password !== "x"){
-        socket.disconnect(true);
-        return;
-    }
+    //WEB RTC LOGIC IMPLEMENTATION
+
+    // if(password !== "x"){
+    //     socket.disconnect(true);
+    //     return;
+    // }
 
     connectedSockets.push({
         socketId: socket.id,
-        userName
     })
 
     //a new client has joined. If there are any offers available,
@@ -176,6 +174,3 @@ process.on("SIGINT", ()=>{
         process.exit(0)
     })
 })
-
-
-

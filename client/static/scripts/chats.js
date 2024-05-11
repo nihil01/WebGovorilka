@@ -1,9 +1,16 @@
+import { io } from "https://cdn.socket.io/4.7.5/socket.io.esm.min.js";
+
 const btnHide = document.querySelector('#btn-hide');
 const btnShow = document.querySelector('#btn-show');
 
 const chat_list = document.querySelector('.chat-list-container');
 
 const chat = document.querySelector(".chat-container");
+
+let state = false;
+
+
+const socket = io.connect('https://localhost:8000/');
 
 btnHide.addEventListener("click", (e) => {
     e.preventDefault();
@@ -25,20 +32,32 @@ if (chat_list.children.length === 1){
     chat_list.appendChild(el);
 }
 
-let flag2 = false;
-chat_list.addEventListener('click', (e) => {
+
+chat_list.addEventListener('click', async (e) => {
+    console.log(e.target)
     if (e.target.nodeName !== 'H2'){
+        state = false;
         if (e.target.parentNode.className === "chat-list-container"){
-            !flag2 ? e.target.style.border = '1px solid red' : e.target.style.border = '1px solid black';
-            loadChat(e.target);
+            state = true;
+            await loadChat(e.target);
+            socket.emit("JOIN_REQUEST", e.target.children[0]["name"]);
+            console.log(e.target)
+            if (state){
+                processMessage();
+            }
         }else{
             if (e.target.parentNode.nodeName !== 'MAIN'){
-                !flag2 ? e.target.parentNode.style.border = '1px solid red' : e.target.parentNode.style.border = '1px solid black';
-                loadChat(e.target.parentNode);
+                state = true;
+                await loadChat(e.target.parentNode);
+                socket.emit("JOIN_REQUEST", e.target.children[0]["name"]);
+                console.log(e.target)
+                if (state){
+                    processMessage();
+                }
             }
         }
-        flag2 = !flag2;
     }
+    state = false;
 })
 
 async function loadChat(e){
@@ -47,8 +66,11 @@ async function loadChat(e){
             "Content-Type": "application/json"
         },
         method: "POST",
-        body: JSON.stringify({userID: parseInt(e.children[0]["name"])})
+        body: JSON.stringify({
+            userID: e.children[0]["name"].split("_")[1]
+        })
     })
+    console.log(e.children[0]["name"].split("_")[1])
     createChat(await data.json())
 }
 
@@ -73,13 +95,24 @@ function createChat(data){
 
     data.chat.forEach(el => {
         const friendField = document.createElement("div");
+        const p = document.createElement("p");
+        const p2 = document.createElement("p");
+
         if (el.message !== ''){
             if (el.user !== "You"){
                 friendField.setAttribute("class", "friend-field");
-                friendField.textContent = el.message;
+                p.textContent = el.message;
+                p.style.marginBottom = "5px";
+                p2.textContent = el.date ;
+                p2.style.fontSize = "9px";
+                friendField.append(p,p2);
             }else {
                 friendField.setAttribute("class", "your-field");
-                friendField.textContent = el.message;
+                p.textContent = el.message;
+                p.style.marginBottom = "5px";
+                p2.textContent = el.date;
+                p2.style.fontSize = "9px";
+                friendField.append(p,p2);
             }
         }
         chatArea.appendChild(friendField)
@@ -89,15 +122,48 @@ function createChat(data){
 
     //footer area
     const input = document.createElement("input");
-    const input2 = document.createElement("input")
-    input.type = "text"
-    input.placeholder = "Type a message .."
+    const input2 = document.createElement("input");
+    const form = document.createElement("form");
 
-    input2.type = "submit"
-    input2.value = 'Send'
-    input2.id = "btn-sbm"
+    form.method = "post";
+    form.id = "form-sbm"
 
-    chatFooter.append(input,input2)
+    input.type = "text";
+    input.id = "input-field";
+    input.placeholder = "Type a message ..";
 
-    chat.append(chatHeader, chatArea, chatFooter)
+    input2.type = "submit";
+    input2.value = 'Send';
+    input2.id = "btn-sbm";
+
+    form.append(input, input2);
+
+    chatFooter.appendChild(form);
+
+    chat.append(chatHeader, chatArea, chatFooter);
+}
+
+function processMessage(){
+    const form = document.querySelector("#form-sbm");
+    const inp_field = document.querySelector("#input-field");
+    const chat = document.querySelector(".chat-area");
+
+    socket.on("new_message", (cb)=>{
+        const div = document.createElement("div");
+        div.setAttribute("class", "friend-field");
+        div.textContent = cb;
+        chat.appendChild(div);
+    })
+
+    form.addEventListener("submit", (e)=>{
+        e.preventDefault();
+        if (inp_field.value.trim() !== ''){
+            const div = document.createElement("div");
+            div.setAttribute("class", "your-field");
+            div.textContent = inp_field.value;
+            chat.appendChild(div);
+            socket.emit("message", inp_field.value);
+            inp_field.value = "";
+        }
+    })
 }

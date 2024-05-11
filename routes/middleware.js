@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const multer = require("multer");
 const { join } = require("path");
-const fs = require("fs");
 
 require('dotenv').config({
     path: "../.env"

@@ -13,7 +13,7 @@
                         <h2>List of chats</h2>
                         <%friends.forEach(el => {%>
                             <div class="friend-container">
-                                <input type="hidden" name="<%=el.id%>"/>
+                                <input type="hidden" name="<%=id%>_<%=el.id%>"/>
                                 <img src="/fetch/avatar/<%=el.id%>" alt="user-avatar">
                                 <p><%=el.nickname%></p>
                             </div>
@@ -23,9 +23,9 @@
                 <div class="chat-container">
                 </div>
             </main>
-        <%- include("../parts/footer.ejs") -%>
+        <%- include("../parts/footer.ejs") -%>\
 
-<script type="module" src="../../scripts/webRtc.js"></script>
-<script src="../../scripts/chats.js"></script>
+<script type="module" src="../../scripts/chats.js"></script>
+<script  src="../../scripts/webRtc.js"></script>
 </body>
 </html>

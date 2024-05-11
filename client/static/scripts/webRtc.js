@@ -1,4 +1,3 @@
-import { io } from "https://cdn.socket.io/4.7.5/socket.io.esm.min.js";
 
 const localVideoEl = document.querySelector('#local-video');
 const remoteVideoEl = document.querySelector('#remote-video');
@@ -8,14 +7,14 @@ let remoteStream; //a var to hold the remote video stream
 let peerConnection; //the peerConnection that the two clients use to talk
 let didIOffer = false;
 
-const userName = "Rob-"+Math.floor(Math.random() * 100000)
-const password = "x";
-
-const socket = io.connect('https://localhost:8000/',{
-    auth: {
-        userName,password
-    }
-})
+// const userName = "Rob-"+Math.floor(Math.random() * 100000)
+// const password = "x";
+//
+// const socket = io.connect('https://localhost:8000/',{
+//     auth: {
+//         userName,password
+//     }
+// })
 
 let peerConfiguration = {
     iceServers:[

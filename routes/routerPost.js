@@ -207,8 +207,17 @@ routerPost.post("/loadChat", handleToken, async(req,res) => {
     const { userID } = req.body;
 
     const relation = await db.checkRelations(id, userID);
+    const chat = await getChat("READ", Object.values(relation[0]).join("_"));
 
-    const chat = await getChat(relation[0])
+    chat.map(el => {
+        if (el.user === id.toString() || el.user === 'You'){
+            el.user = "You"
+        }else{
+            el.user = "Abonent"
+        }
+        return chat
+    })
+
     res.status(200).json({ chat });
 })
 

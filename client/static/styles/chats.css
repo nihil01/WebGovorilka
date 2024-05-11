@@ -76,13 +76,14 @@ main {
     height: 90%;
     overflow-y: auto;
     flex-grow: 0;
+    padding: 1.4rem;
 }
 
 .chat-footer{
     order: 3;
     border: 1px solid black;
     height: 5%;
-    flex-shrink: 0 ;
+    flex-shrink: 0;
 }
 
 .friend-field{
@@ -92,6 +93,7 @@ main {
     border-radius: 20px;
     margin-top: 10px;
     margin-right: 20rem;
+    font-family: sans-serif;
 }
 
 .your-field{
@@ -101,18 +103,20 @@ main {
     border-radius: 20px;
     margin-top: 10px;
     margin-left: 20rem;
+    font-family: sans-serif;
 }
 
-.chat-footer{
+.chat-footer form{
     display: flex;
-
+    height: 100%;
+    width: 100%;
 }
 
-.chat-footer input{
+.chat-footer form input{
     width: 97%;
     height: 95%;
 }
 
-.chat-footer #btn-sbm{
+.chat-footer form #btn-sbm{
     width: 3%;
 }
