@@ -205,8 +205,16 @@ routerPost.post("/passwordReset", async (req,res) => {
 routerPost.post("/loadChat", handleToken, async(req,res) => {
     const id = req.session_token.id;
     const { userID } = req.body;
+    console.log(userID)
+    if (!userID){
+        return res.json({"error": "No user ID!"})
+    }
 
     const relation = await db.checkRelations(id, userID);
+    console.log(relation)
+    if (relation.length === 0){
+        return res.json({"error": "No relation!"})
+    }
     const chat = await getChat("READ", Object.values(relation[0]).join("_"));
 
     chat.map(el => {

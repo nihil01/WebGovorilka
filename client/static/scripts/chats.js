@@ -1,5 +1,15 @@
 import { io } from "https://cdn.socket.io/4.7.5/socket.io.esm.min.js";
 
+function allowNotifications(){
+    if (Notification.permission === "default"){
+        alert("For better user experience, we recommend you to allow notifications for incoming calls")
+        Notification.requestPermission();
+    }
+}
+
+
+allowNotifications()
+
 const btnHide = document.querySelector('#btn-hide');
 const btnShow = document.querySelector('#btn-show');
 
@@ -11,6 +21,36 @@ let state = false;
 
 
 const socket = io.connect('https://localhost:8000/');
+
+socket.on("incomingCall", (e) => {
+    // document.body.style.background = "rgba(0, 0, 0, 0.5);"
+    const panel = document.createElement("div");
+    panel.setAttribute("class", "panelOuter");
+    let data = document.createElement("div");
+    data.textContent = `Incoming call: ${e.user} `;
+
+    const pickUp = document.createElement("button");
+    const pickDown = document.createElement("button");
+    pickDown.textContent = "Pick Down";
+    pickDown.onclick = () => {
+        document.body.removeChild(document.querySelector('.panelOuter'));
+    }
+    pickUp.textContent = "Pick Up";
+    pickUp.onclick = () => {
+        window.open(e.joinLink, "_blank");
+    }
+    data.append(pickDown, pickUp)
+
+    setTimeout(() => {
+        document.body.removeChild(document.querySelector('.panelOuter'));
+    }, 10000);
+
+    panel.appendChild(data);
+    document.body.insertBefore(panel, document.body.firstChild)
+
+    new Notification(`${e.user} is calling to you`, { icon: "https://localhost:8000/images/phone.png", lang: "en-US",
+        requireInteraction: true});
+})
 
 btnHide.addEventListener("click", (e) => {
     e.preventDefault();
@@ -33,32 +73,36 @@ if (chat_list.children.length === 1){
 }
 
 
-chat_list.addEventListener('click', async (e) => {
-    console.log(e.target)
-    if (e.target.nodeName !== 'H2'){
+const elements = chat_list.getElementsByClassName("friend-container");
+for (let i = 0; i < elements.length; i++) {
+    elements.item(i).addEventListener("click", async (e) => {
+        for (let j = 0; j < elements.length; j++) {
+            elements.item(j).style.border = "1px solid black";
+        }
+
         state = false;
-        if (e.target.parentNode.className === "chat-list-container"){
+        if (e.target.className !== "friend-container") {
             state = true;
-            await loadChat(e.target);
-            socket.emit("JOIN_REQUEST", e.target.children[0]["name"]);
-            console.log(e.target)
-            if (state){
+            await loadChat(e.target.parentNode.childNodes[1]["name"]);
+            socket.emit("JOIN_REQUEST", e.target.parentNode.childNodes[1]["name"]);
+            if (state) {
                 processMessage();
             }
-        }else{
-            if (e.target.parentNode.nodeName !== 'MAIN'){
-                state = true;
-                await loadChat(e.target.parentNode);
-                socket.emit("JOIN_REQUEST", e.target.children[0]["name"]);
-                console.log(e.target)
-                if (state){
-                    processMessage();
-                }
+            e.target.parentNode.style.border = "1px solid red";
+        } else {
+            state = true;
+            await loadChat(e.target.childNodes[1]["name"]);
+            socket.emit("JOIN_REQUEST", e.target.childNodes[1]["name"]);
+            if (state) {
+                processMessage();
             }
+            e.target.style.border = "1px solid red";
         }
-    }
-    state = false;
-})
+        state = false;
+    });
+}
+
+
 
 async function loadChat(e){
     const data = await fetch("/api/v1/loadChat", {
@@ -67,14 +111,13 @@ async function loadChat(e){
         },
         method: "POST",
         body: JSON.stringify({
-            userID: e.children[0]["name"].split("_")[1]
+            userID: e.split("_")[1]
         })
     })
-    console.log(e.children[0]["name"].split("_")[1])
-    createChat(await data.json())
+    createChat(await data.json(), e);
 }
 
-function createChat(data){
+function createChat(data, e){
     chat.innerHTML = "";
     const chatHeader = document.createElement("div");
     const chatArea = document.createElement("div");
@@ -86,9 +129,18 @@ function createChat(data){
     //header
     const video = new Image(25, 20);
     video.src = `https://localhost:8000/images/video-call.png`
+    video.title = "Click to start a video call!";
+    video.onclick = () => {
+        new MakeACall("video", `${e.split("_")[1]}`, `${e.split("_")[0]}`);
+    };
 
     const phone = new Image(30, 20);
     phone.src = `https://localhost:8000/images/phone.png`;
+    phone.title = "Click to start an audio call!";
+
+    phone.onclick = () => {
+        new MakeACall("audio", `${e.split("_")[1]}`, `${e.split("_")[0]}`);
+    };
 
     chatHeader.append(phone,video)
     //main area
@@ -166,4 +218,59 @@ function processMessage(){
             inp_field.value = "";
         }
     })
+}
+
+class MakeACall{
+    constructor(callType, userID, callerID) {
+        this.type = callType;
+        this.userID = userID;
+        this.callerID = callerID;
+        this._call();
+    }
+
+    static status = '';
+
+
+    _checkUserStatus(userId){
+        return new Promise((resolve, reject) => {
+            socket.emit("checkUserStatus", userId);
+            socket.on("checkUserStatus", (data) => {
+                !data ? MakeACall.status = "OFFLINE" : MakeACall.status = "ONLINE";
+                resolve(MakeACall.status);
+            })
+            setTimeout(()=>{ reject("TIMEOUT NO STATUS") },3000)
+        })
+
+    }
+
+     _genID(){
+        return crypto.randomUUID();
+    }
+
+    _sendRequest(data){
+        socket.emit("sendRequestToRecipient", this.userID, this.callerID, data);
+    }
+
+    async _reroute(type){
+        let data;
+
+        switch (type){
+            case "audio":
+                data = `/call?session=${this._genID()}&re=${this.callerID}_${this.userID}&audio=true`;
+                await this._sendRequest(data)
+                window.location.href = data;
+                break;
+            case "video":
+                data = `/call?session=${this._genID()}&re=${this.callerID}_${this.userID}&audio=true&video=true`;
+                await this._sendRequest(data)
+                window.location.href = data;
+                break;
+        }
+    }
+
+    async _call(){
+        await this._checkUserStatus(this.userID);
+        await this._reroute(this.type);
+    }
+
 }

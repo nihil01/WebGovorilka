@@ -68,6 +68,7 @@ main {
     float: right;
     padding: 12px;
     margin-right: 18px;
+    cursor: pointer;
 }
 
 .chat-area{
@@ -119,4 +120,16 @@ main {
 
 .chat-footer form #btn-sbm{
     width: 3%;
+}
+
+/*PANEL INCOMING CALL*/
+
+.panelOuter{
+    width: 15rem;
+    height: 10rem;
+    z-index: 10000;
+    border: 1px solid black;
+    position: absolute;
+    top: 50%;
+    left: 50%;
 }

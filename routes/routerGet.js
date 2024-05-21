@@ -272,6 +272,34 @@ routerGet.get("/passwordReset/:hash", async (req,res) => {
     res.render(join(__dirname, '../client/static/views/components/passReset.ejs'))
 })
 
+routerGet.get("/call", handleToken, function(req,res){
+    const { re } = req.query;
+    const credentials = re.split("_");
+    const id = req.session_token.id;
+
+    if (!re){
+        return res.json({ error: "Something went wrong..." })
+    }
+    try{
+        if (parseInt(credentials[0]) !== id && parseInt(credentials[1]) !== id){
+            return res.json({ error: "Something went wrong..." })
+        }
+
+        if (parseInt(credentials[0]) === req.session_token.id){
+            return res.render(join(__dirname, '../client/static/views/components/callPage.ejs'), {
+                id: id,
+                user: credentials[1]
+            });
+        }else{
+            return res.render(join(__dirname, '../client/static/views/components/callPage.ejs'), {
+                id: id, user: credentials[0]
+            });
+        }
+    }catch (e) {
+        return res.json({ error: "Something went wrong..." })
+    }
+})
+
 
 
 module.exports = routerGet;

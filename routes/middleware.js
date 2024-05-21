@@ -75,12 +75,29 @@ const filterConfig = (req, file, cb) => {
     }
 }
 
+const checkCookie = async (handshake) => {
+    try {
+        let cookies = handshake.split(";");
+        let cookie;
+        for (const el of cookies){
+            cookie = el.includes("session_token") ? el.slice("session_token=".length).trim(): ""
+        }
+        let data = await checkTokenValidity(
+            cookie, process.env.JWT_SECRET);
+        return data.id;
+    }
+    catch(e){
+        console.error(e);
+        return null;
+    }
+}
+
 
 module.exports = {
     //jwt
     createToken, checkTokenValidity,
     //utils
-    showTime, normalize, reverse,
+    showTime, normalize, reverse, checkCookie,
     //multer
     storageConfig, filterConfig
 }

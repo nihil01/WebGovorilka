@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>WebGovorilka | Call page</title>
+    <link rel="stylesheet" href="../../styles/callpage.css">
+</head>
+<body>
+<main>
+    <div class="users-container">
+        <div class="user-me">
+            <video id="myvid" src=""></video>
+        </div>
+        <div class="user-abonent">
+            <video id="uservid" src=""></video>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <div class="btn hangup">hangup</div>
+    </div>
+</main>
+<script type="module">
+    import { io } from "https://cdn.socket.io/4.7.5/socket.io.esm.min.js";
+
+    const myCam = document.getElementById("myvid");
+    const userCam = document.getElementById("uservid");
+
+    const abonent = document.querySelector(".user-abonent")
+
+    let localStream; //a var to hold the local video stream
+    let remoteStream; //a var to hold the remote video stream
+    let peerConnection; //the peerConnection that the two clients use to talk
+    let didIOffer = false;
+
+    const userName = Math.floor(Math.random() * 100000)
+    const socket = io.connect('https://localhost:8000/', {
+        auth: {
+            userName
+        }
+    });
+
+    let peerConfiguration = {
+        iceServers:[
+            {
+                urls:[
+                    'stun:stun.l.google.com:19302',
+                    'stun:stun1.l.google.com:19302'
+                ]
+            }
+        ]
+    }
+
+    function joinRoom() {
+        const url = new URL(location.href);
+        const session = url.searchParams.get("session");
+        if (session) {
+            socket.emit("joinRoom", session);
+        }
+    }
+    joinRoom();
+    let drawn = false;
+    let counter = 0;
+    let timeout;
+
+    socket.on("roomInfo", (data) => {
+        const awaitMes = document.createElement('div');
+        awaitMes.textContent = "waiting for user's connection";
+
+        const subFunction = () => {
+            if (!drawn) {
+                abonent.appendChild(awaitMes);
+                abonent.style.backgroundColor = "grey";
+                drawn = true;
+            }
+
+            if (counter >= 3) {
+                alert("User did not enter the chat!");
+                window.close();
+                return;
+            }
+
+            if (data !== 2) {
+                counter++;
+                console.log(`Counter: ${counter}`);
+                timeout = setTimeout(subFunction, 5000);
+            } else {
+                clearTimeout(timeout);
+                if (data.status === "disconnect") {
+                    alert("User left the chat");
+                    window.close();
+                    return;
+                }
+                abonent.style.backgroundColor = "white";
+                console.log(abonent.removeChild(awaitMes))
+                call();
+            }
+        };
+        subFunction();
+    });
+
+    const call = async (e) =>{
+        await fetchUserMedia();
+
+        //peerConnection is all set with our STUN servers sent over
+        await createPeerConnection();
+
+        //create offer time!
+        try{
+            console.log("Creating offer...")
+            const offer = await peerConnection.createOffer();
+            console.log(offer);
+            peerConnection.setLocalDescription(offer);
+            didIOffer = true;
+            socket.emit('newOffer',offer); //send offer to signalingServer
+        }catch(err){
+            console.log(err)
+        }
+
+    }
+
+    async function fetchUserMedia(){
+        const {searchParams} = new URL(location.href)
+        if (searchParams.has("audio") && searchParams.has("video")){
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: true, audio: true
+            });
+            myCam.srcObject = stream;
+            localStream = stream;
+        }else if (searchParams.has("audio")){
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true
+            });
+            localStream = stream;
+            Array.of(document.getElementById("myvid"), document.getElementById("uservid"))
+                .forEach(function(el) {
+                    console.log(el);
+                    replace(el);
+                });
+        }else {
+            window.close();
+        }
+    }
+
+    async function createPeerConnection(offerObj){
+        return new Promise(async (resolve, reject) => {
+            peerConnection = new RTCPeerConnection(peerConfiguration);
+            remoteStream = new MediaStream();
+
+            userCam.srcObject = remoteStream;
+
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            })
+
+            peerConnection.addEventListener("signalingstatechange", e => {
+                console.log(e);
+                console.log(peerConnection.signalingState);
+            })
+
+            peerConnection.addEventListener("icecandidate", e => {
+                console.log("** ICE CANDIDATE FOUND **");
+                console.log(e);
+                if (e.candidate){
+                    socket.emit('sendIceCandidateToSignalingServer',{
+                        iceCandidate: e.candidate,
+                        iceUserName: userName,
+                        didIOffer,
+                    })
+                }
+            })
+
+            peerConnection.addEventListener('track',e=>{
+                console.log(e)
+                e.streams[0].getTracks().forEach(track=>{
+                    remoteStream.addTrack(track,remoteStream);
+                    console.log("Here's an exciting moment... fingers cross")
+                })
+            })
+
+            if (offerObj){
+                await peerConnection.setRemoteDescription(offerObj.offer);
+            }
+            resolve();
+        })
+    }
+
+    async function answerOffer(offerObj){
+        await fetchUserMedia();
+        await createPeerConnection(offerObj);
+        const answer = await peerConnection.createAnswer({}); //just to make the docs happy
+        await peerConnection.setLocalDescription(answer); //this is CLIENT2, and CLIENT2 uses the answer as the localDesc
+        console.log(offerObj)
+        console.log(answer)
+        // console.log(peerConnection.signalingState) //should be have-local-pranswer because CLIENT2 has set its local desc to it's answer (but it won't be)
+        //add the answer to the offerObj so the server knows which offer this is related to
+        offerObj.answer = answer
+        //emit the answer to the signaling server, so it can emit to CLIENT1
+        //expect a response from the server with the already existing ICE candidates
+        const offerIceCandidates = await socket.emitWithAck('newAnswer',offerObj)
+        offerIceCandidates.forEach(c=>{
+            peerConnection.addIceCandidate(c);
+            console.log("======Added Ice Candidate======")
+        })
+        console.log(offerIceCandidates)
+    }
+
+    function addNewIceCandidate(iceCandidate){
+        peerConnection.addIceCandidate(iceCandidate)
+        console.log("======Added Ice Candidate======")
+    }
+
+    async function addAnswer(offerObj){
+        //addAnswer is called in socketListeners when an answerResponse is emitted.
+        //at this point, the offer and answer have been exchanged!
+        //now CLIENT1 needs to set the remote
+        await peerConnection.setRemoteDescription(offerObj.answer);
+        // console.log(peerConnection.signalingState)
+    }
+
+    //sockets
+
+    //on connection get all available offers and call createOfferEls
+    socket.on('availableOffers',offers=>{
+        console.log(offers)
+        createOfferEls(offers)
+    })
+
+    //someone just made a new offer and we're already here - call createOfferEls
+    socket.on('newOfferAwaiting',offers=>{
+        createOfferEls(offers)
+    })
+
+    socket.on('answerResponse',offerObj=>{
+        console.log(offerObj)
+        addAnswer(offerObj)
+    })
+
+    socket.on('receivedIceCandidateFromServer',iceCandidate=>{
+        addNewIceCandidate(iceCandidate)
+        console.log(iceCandidate)
+    })
+
+    function createOfferEls(offers){
+        //make green answer button for this new offer
+        offers.forEach(o=>{
+            answerOffer(o)
+        })
+    }
+
+    document.querySelector(".hangup").onclick = () => {
+        window.close();
+    };
+
+    const replace = (child) => {
+        let parent = child.parentNode;
+        if (child.currentSrc === "" || !child.srcObject){
+            const newChild = document.createElement("img");
+            child.id === "myvid" ? newChild.src = "/fetch/avatar/<%=id%>" :
+                newChild.src = "/fetch/avatar/<%=user%>"
+            newChild.style.width = 'auto';
+            newChild.style.objectFit = 'cover';
+
+            parent.style.width = '12rem';
+            parent.style.height = 'auto';
+            parent.replaceChild(newChild, child)
+        }
+    }
+
+</script>
+</body>
+</html>

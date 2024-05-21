@@ -3,7 +3,6 @@ const https = require('https');
 const express = require('express');
 const app = express();
 const path = require('path');
-
 // const cors = require("cors");
 
 require("dotenv").config({
@@ -15,8 +14,10 @@ const routerPost = require('./routes/routerPost.js');
 
 const socket = require('socket.io');
 
-const { checkTokenValidity } = require("./routes/middleware")
-
+const { checkTokenValidity, checkCookie } = require("./routes/middleware")
+const { conn, createHash,
+    checkPresence, deleteHash } = require("./redis/main")
+const { getUserById } = require("./db/index")
 const getChat= require("./chats_utils/utils");
 
 app.set("views", path.join(__dirname, `./client/static/views`));
@@ -35,9 +36,10 @@ const expressServer = https.createServer({key, cert}, app);
 const io = socket(expressServer, {
     cors: {
         origin: [
-            "https://localhost",
-            "https://192.168.0.48",
-            "https://192.168.0.106"
+            "https://localhost:8000",
+            "https://192.168.0.48:8000",
+            "https://192.168.0.106:8000",
+            "https://192.168.0.115:8000"
         ],
         methods: ["GET", "POST"]
     }
@@ -46,17 +48,74 @@ expressServer.listen(8000);
 
 const offers = [];
 const connectedSockets = [];
+const roomUserCounts = {};
+let roomNameCopy = "";
 
-io.on('connection',(socket)=>{
+io.on('connection',async (socket)=>{
+    const userName = socket.handshake.auth.userName;
     //WEB CHAT LOGIC IMPLEMENTATION
-    console.log('connected!')
+    const cookieVal = await checkCookie(socket.handshake.headers.cookie);
+
+    if (cookieVal !== null){
+        await createHash(cookieVal, socket.id);
+    }else{
+        console.log("invalid cookie");
+        return;
+    }
+
+    socket.on('disconnect', async () => {
+
+        const cookieVal = await checkCookie(socket.handshake.headers.cookie);
+        if (cookieVal !== null){
+            await deleteHash(cookieVal);
+        }else{
+            console.log("invalid cookie");
+        }
+    });
+
+    socket.on("checkUserStatus", async(userID)=>{
+        const result = await checkPresence(userID)
+        socket.emit("checkUserStatus", result !== null);
+    });
+
+    socket.on("sendRequestToRecipient", async (userID, caller, joinLink) => {
+        const data = await checkPresence(userID);
+        let callerUpd = await getUserById(caller);
+        socket.to(data).emit("incomingCall", { user: callerUpd[0].nickname, joinLink });
+    });
+
+    socket.on('joinRoom', (roomName) => {
+        if (!roomUserCounts[roomName]) {
+            roomUserCounts[roomName] = 0;
+        }
+
+        roomUserCounts[roomName]++;
+
+        socket.join(roomName);
+
+        console.log(`User joined room ${roomName}. User count: ${roomUserCounts[roomName]}`);
+
+        // Отправляем обновленное количество пользователей всем в комнате
+        io.in(roomName).emit("roomInfo", roomUserCounts[roomName]);
+
+        socket.on('disconnect', () => {
+            if (roomUserCounts[roomName]) {
+                roomUserCounts[roomName]--;
+                console.log(`User left room ${roomName}. User count: ${roomUserCounts[roomName]}`);
+
+                // Отправляем обновленное количество пользователей всем в комнате
+                io.in(roomName).emit("roomInfo", {status: "disconnect"});
+
+                if (roomUserCounts[roomName] === 0) {
+                    delete roomUserCounts[roomName];
+                }
+            }
+        });
+    });
 
     socket.on("JOIN_REQUEST", (cb) => {
         const cb2 = cb.split("_").sort((a,b) => a - b ).join("");
         socket.join(cb2);
-        console.log("someone joined room", cb2)
-
-        socket.broadcast.in(cb2).emit("new_user","Someone joined the room!");
 
         socket.on("message", async (data)=>{
             let cookies = socket.handshake.headers.cookie.split(";");
@@ -64,12 +123,10 @@ io.on('connection',(socket)=>{
             for (const el of cookies){
                 cookie = el.includes("session_token") ? el.slice("session_token=".length).trim(): ""
             }
-            console.log(cookie)
             const info = await checkTokenValidity(
                 cookie, process.env.JWT_SECRET);
             getChat("WRITE", cb, {id: info.id, data});
-            console.log({id: info.id, data})
-            socket.broadcast.in(cb2).emit("new_message", data);
+            socket.in(cb2).emit("new_message", data);
         })
     })
 
@@ -77,13 +134,10 @@ io.on('connection',(socket)=>{
 
     //WEB RTC LOGIC IMPLEMENTATION
 
-    // if(password !== "x"){
-    //     socket.disconnect(true);
-    //     return;
-    // }
 
     connectedSockets.push({
         socketId: socket.id,
+        userName
     })
 
     //a new client has joined. If there are any offers available,
@@ -167,10 +221,14 @@ io.on('connection',(socket)=>{
 
 })
 
-process.on("SIGINT", ()=>{
-    console.log("Shutting down ...")
+process.on("SIGINT",  async ()=>{
+    console.log("Shutting down ...");
+        await conn.quit();
+        console.log("Cleared hashes ...");
+        console.log("Redis shut down ...");
+
     expressServer.close((e)=>{
-        console.log("Server closed", e)
-        process.exit(0)
+        console.log("Express server closed", e);
+        process.exit(0);
     })
 })
